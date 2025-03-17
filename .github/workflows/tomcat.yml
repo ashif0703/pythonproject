@@ -26,7 +26,7 @@ jobs:
             # Install Java 17
             sudo apt update
             sudo apt install -y openjdk-17-jdk
-            
+
             # Verify Java Installation
             java -version
 
@@ -34,18 +34,22 @@ jobs:
             sudo mkdir -p /opt/tomcat
             cd /opt/tomcat
 
-            # Download Tomcat (Change version if needed)
-            TOMCAT_VERSION=10.1.16
-            sudo wget https://downloads.apache.org/tomcat/tomcat-10/v$TOMCAT_VERSION/bin/apache-tomcat-$TOMCAT_VERSION.tar.gz
-            
+            # Get latest Tomcat version dynamically
+            TOMCAT_VERSION=$(curl -s https://downloads.apache.org/tomcat/tomcat-10/ | grep -o 'v10\.[0-9]\+\.[0-9]\+' | tail -n 1 | cut -c2-)
+            TOMCAT_URL="https://downloads.apache.org/tomcat/tomcat-10/v$TOMCAT_VERSION/bin/apache-tomcat-$TOMCAT_VERSION.tar.gz"
+
+            # Download Tomcat
+            echo "Downloading Tomcat from: $TOMCAT_URL"
+            sudo wget "$TOMCAT_URL"
+
             # Extract Tomcat
             sudo tar -xvzf apache-tomcat-$TOMCAT_VERSION.tar.gz
             sudo rm apache-tomcat-$TOMCAT_VERSION.tar.gz
-            
+
             # Rename and set permissions
             sudo mv apache-tomcat-$TOMCAT_VERSION tomcat
             sudo chmod +x /opt/tomcat/tomcat/bin/*.sh
-            
+
             # Start Tomcat Server
             /opt/tomcat/tomcat/bin/startup.sh
             EOF
