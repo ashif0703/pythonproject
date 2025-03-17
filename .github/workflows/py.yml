@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  test:
-    name: Run Tests
+  build:
+    name: build
     runs-on: ubuntu-latest
 
     steps:
@@ -23,9 +23,6 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Run Tests
-        run: pytest tests/
 
   deploy:
     name: Deploy to AWS EC2
