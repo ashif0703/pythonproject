@@ -1,0 +1,55 @@
+name: Deploy Tomcat Server
+
+on:
+  push:
+    branches:
+      - main  # Runs on push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up SSH and Connect to Server
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MY_PEM }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.MY_IP }} >> ~/.ssh/known_hosts
+
+      - name: Install Java 17 and Tomcat on Server
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.MY_IP }} << 'EOF'
+            # Install Java 17
+            sudo apt update
+            sudo apt install -y openjdk-17-jdk
+            
+            # Verify Java Installation
+            java -version
+
+            # Set up Tomcat directory
+            sudo mkdir -p /opt/tomcat
+            cd /opt/tomcat
+
+            # Download Tomcat (Change version if needed)
+            TOMCAT_VERSION=10.1.16
+            sudo wget https://downloads.apache.org/tomcat/tomcat-10/v$TOMCAT_VERSION/bin/apache-tomcat-$TOMCAT_VERSION.tar.gz
+            
+            # Extract Tomcat
+            sudo tar -xvzf apache-tomcat-$TOMCAT_VERSION.tar.gz
+            sudo rm apache-tomcat-$TOMCAT_VERSION.tar.gz
+            
+            # Rename and set permissions
+            sudo mv apache-tomcat-$TOMCAT_VERSION tomcat
+            sudo chmod +x /opt/tomcat/tomcat/bin/*.sh
+            
+            # Start Tomcat Server
+            /opt/tomcat/tomcat/bin/startup.sh
+            EOF
+
+      - name: Verify Tomcat is Running
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ secrets.MY_IP }} "curl -I http://localhost:8080"
