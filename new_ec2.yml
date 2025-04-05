@@ -1,0 +1,33 @@
+name: Easy EC2 Deploy
+
+on:
+  push:
+    branches: [main]  # Trigger deploy on push to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.MY_PEM_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.MY_IP }} >> ~/.ssh/known_hosts
+
+    - name: Upload code to EC2
+      run: |
+        ssh -i ~/.ssh/id_rsa ${{ secrets.ubuntu }}@${{ secrets.MY_IP }} "mkdir -p ~/app"
+        scp -i ~/.ssh/id_rsa -r . ${{ secrets.ubuntu }}@${{ secrets.MY_IP }}:~/app
+
+    - name: Run the app on EC2
+      run: |
+        ssh -i ~/.ssh/id_rsa ${{ secrets.ubuntu }}@${{ secrets.MY_IP }} << 'EOF'
+          cd ~/app
+          pkill -f 'python3 app.py' || true   # Kill old process if running (for Python)
+          nohup python3 app.py > app.log 2>&1 &  # Run your Python app in background
+        EOF
