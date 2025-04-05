@@ -1,4 +1,4 @@
-name: Deploy Java App (No Tomcat)
+name: Deploy Java App (No Java Install, No Tomcat)
 
 on:
   push:
@@ -23,15 +23,9 @@ jobs:
       run: |
         scp -i ~/.ssh/id_rsa ./your-app.jar ${{ secrets.MY_IP }}@${{ secrets.MY_IP }}:/home/${{ secrets.MY_IP }}/your-app.jar
 
-    - name: SSH into EC2 and install Java 17
+    - name: SSH into EC2 and run app
       run: |
         ssh -i ~/.ssh/id_rsa ${{ secrets.MY_IP }}@${{ secrets.MY_IP }} << 'EOF'
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk
-
-          # Optional: Stop any existing Java process (based on your setup)
-          pkill -f 'java -jar' || true
-
-          # Run the app in the background
+          pkill -f 'java -jar' || true  # Kill existing app (optional)
           nohup java -jar /home/${{ secrets.MY_IP }}/your-app.jar > app.log 2>&1 &
         EOF
