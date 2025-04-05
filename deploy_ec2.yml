@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy Java App (No Tomcat)
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
+    - name: Checkout repository
       uses: actions/checkout@v3
 
     - name: Set up SSH key
@@ -17,18 +17,21 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.MY_PEM_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-
-    - name: Add EC2 host to known_hosts
-      run: |
         ssh-keyscan -H ${{ secrets.MY_IP }} >> ~/.ssh/known_hosts
 
-    - name: Copy app to EC2
+    - name: Copy JAR file to EC2
       run: |
-        rsync -avz --exclude '.git' ./ ${{ secrets.MY_IP }}@${{ secrets.MY_IP }}:/home/${{ secrets.MY_IP }}/app/
+        scp -i ~/.ssh/id_rsa ./your-app.jar ${{ secrets.MY_IP }}@${{ secrets.MY_IP }}:/home/${{ secrets.MY_IP }}/your-app.jar
 
-    - name: Run app on EC2
+    - name: SSH into EC2 and install Java 17
       run: |
-        ssh ${{ secrets.MY_IP }}@${{ secrets.MY_IP }} << 'EOF'
-          cd ~/app
-          nohup python3 app.py > server.log 2>&1 &
+        ssh -i ~/.ssh/id_rsa ${{ secrets.MY_IP }}@${{ secrets.MY_IP }} << 'EOF'
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk
+
+          # Optional: Stop any existing Java process (based on your setup)
+          pkill -f 'java -jar' || true
+
+          # Run the app in the background
+          nohup java -jar /home/${{ secrets.MY_IP }}/your-app.jar > app.log 2>&1 &
         EOF
