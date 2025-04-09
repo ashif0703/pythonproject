@@ -1,31 +1,31 @@
-name: Start App on EC2
+name: Start App on Amazon Linux EC2
 
 on:
-  workflow_dispatch:  # You can also trigger on push if needed
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # GitHub-hosted runner (it's ok!)
 
     steps:
-      - name: Set up SSH
+      - name: Set up SSH for EC2 connection
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.MY_PEM_KEY }}" > ~/.ssh/id_rsa
           chmod 400 ~/.ssh/id_rsa
 
-      - name: Start Python App on EC2
+      - name: Run app on Amazon Linux EC2
         run: |
           ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.MY_IP }} << 'EOF'
-            # Go to your existing app directory
+            # Move to the directory where your app is located
             cd ~/app
 
-            # Activate virtual environment
+            # Activate virtual environment (assumes it's already there)
             source venv/bin/activate
 
-            # Kill any previous app
+            # Kill old process if any
             pkill -f app.py || true
 
-            # Start the app
+            # Start the app (e.g., Python web server)
             nohup python3 app.py > app.log 2>&1 &
           EOF
