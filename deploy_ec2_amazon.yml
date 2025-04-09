@@ -1,0 +1,31 @@
+name: Start App on EC2
+
+on:
+  workflow_dispatch:  # You can also trigger on push if needed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.MY_PEM_KEY }}" > ~/.ssh/id_rsa
+          chmod 400 ~/.ssh/id_rsa
+
+      - name: Start Python App on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.MY_IP }} << 'EOF'
+            # Go to your existing app directory
+            cd ~/app
+
+            # Activate virtual environment
+            source venv/bin/activate
+
+            # Kill any previous app
+            pkill -f app.py || true
+
+            # Start the app
+            nohup python3 app.py > app.log 2>&1 &
+          EOF
