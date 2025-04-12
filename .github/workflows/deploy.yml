@@ -11,6 +11,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Test basic SSH connection
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: 15.206.100.195  # EC2 IP address
+        username: ubuntu  # Your EC2 username
+        key: ${{ secrets.EC2_KEY }}  # Ensure this is the correct secret
+        script: echo "Hello from GitHub Actions!"
+        timeout: 5m  # 
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -32,6 +41,7 @@ jobs:
           # Remove and recreate the app directory
           rm -rf ~/my-flask-app
           mkdir -p ~/my-flask-app  # Ensure the directory exists
+        timeout: 10m 
 
     - name: Upload code to EC2
       uses: appleboy/scp-action@v0.1.4
