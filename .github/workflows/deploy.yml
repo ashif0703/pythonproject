@@ -1,4 +1,4 @@
-name: Deploy Flask App to EC2
+name: Run Flask App on EC2
 
 on:
   workflow_dispatch:
@@ -8,65 +8,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v3
+      - name: SSH and run the Flask app
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: 15.206.100.195
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          port: 22
+          script: |
+            echo "Navigating to app directory..."
+            cd ~/my-flask-app
 
-    - name: 🧹 Clean up old folder on EC2
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: 15.206.100.195
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          echo "Stopping running app (if any)..."
-          pkill -f app.py || echo "No app running"
+            echo "Activating virtual environment..."
+            source venv/bin/activate
 
-          echo "Cleaning old app folder..."
-          rm -rf ~/my-flask-app
-          mkdir -p ~/my-flask-app
-          echo "App folder ready."
+            echo "Installing dependencies..."
+            pip install -r requirements.txt
 
-    - name: 📤 Upload project to EC2
-      uses: appleboy/scp-action@v0.1.4
-      with:
-        host: 15.206.100.195
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        source: "."
-        target: "~/my-flask-app"
+            echo "Stopping existing app (if any)..."
+            pkill -f app.py || echo "No app was running."
 
-    - name: 🐍 Set up Python venv & install dependencies
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: 15.206.100.195
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          echo "Navigating to app folder..."
-          cd ~/my-flask-app
-
-          echo "Setting up virtual environment..."
-          python3 -m venv venv
-
-          echo "Activating venv..."
-          source venv/bin/activate
-
-          echo "Installing requirements..."
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-    - name: 🚀 Run Flask app in background
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: 15.206.100.195
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          echo "Navigating to app directory..."
-          cd ~/my-flask-app
-
-          echo "Activating venv and launching Flask app..."
-          source venv/bin/activate
-          nohup python3 app.py > app.log 2>&1 &
-          echo "Flask app started."
-
+            echo "Starting Flask app..."
+            nohup python app.py > app.log 2>&1 &
