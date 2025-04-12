@@ -1,9 +1,7 @@
 name: Deploy Tomcat Server
 
 on:
-  push:
-    branches:
-      - main  # Runs on push to the main branch
+  workflow_dispatch:
 
 jobs:
   deploy:
