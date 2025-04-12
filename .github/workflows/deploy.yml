@@ -1,7 +1,7 @@
 name: Deploy to EC2
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
 
 jobs:
   deploy:
@@ -22,42 +22,46 @@ jobs:
     - name: Stop any existing app and prepare folder
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: 15.206.100.195
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
+        host: 15.206.100.195  # EC2 instance IP address
+        username: ubuntu  # Your EC2 username
+        key: ${{ secrets.EC2_KEY }}  # Store your PEM key securely in GitHub Secrets
         script: |
-          pkill -f app.py || true
+          # Kill any existing Flask app if running
+          pkill -f app.py || echo "No running Flask app to kill."
+
+          # Remove and recreate the app directory
           rm -rf ~/my-flask-app
-          mkdir ~/my-flask-app
+          mkdir -p ~/my-flask-app  # Ensure the directory exists
 
     - name: Upload code to EC2
       uses: appleboy/scp-action@v0.1.4
       with:
-        host: 15.206.100.195
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        source: "."
-        target: "~/my-flask-app"
+        host: 15.206.100.195  # EC2 instance IP address
+        username: ubuntu  # Your EC2 username
+        key: ${{ secrets.EC2_KEY }}  # Store your PEM key securely in GitHub Secrets
+        source: "."  # All files from the current directory (repository root)
+        target: "~/my-flask-app"  # Path on the EC2 instance
 
     - name: Set up venv and run app
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host: 15.206.100.195
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
+        host: 15.206.100.195  # EC2 instance IP address
+        username: ubuntu  # Your EC2 username
+        key: ${{ secrets.EC2_KEY }}  # Store your PEM key securely in GitHub Secrets
         script: |
           cd ~/my-flask-app
 
-          # Create virtual environment if it doesn't exist
+          # Create a virtual environment if it doesn't exist
           if [ ! -d ~/venv ]; then
             python3 -m venv ~/venv
           fi
 
-          # Activate virtual environment
+          # Activate the virtual environment
           source ~/venv/bin/activate
 
-          # Install dependencies
+          # Install dependencies within the virtual environment
           pip install -r requirements.txt
 
-          # Run the app in the background
+          # Run the app in the background and capture logs
           nohup python3 app.py > app.log 2>&1 &
+          echo "App is now running in the background"
